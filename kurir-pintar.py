@@ -1,6 +1,3 @@
-import pygame
-import random
-from pygame.locals import *
 from tkinter import filedialog, Tk
 from PIL import Image
 from collections import deque
@@ -53,3 +50,52 @@ def update_direction(path, current_pos):
         elif dx == -1: kurir_dir = "LEFT"
         elif dy == -1: kurir_dir = "UP"
         elif dy == 1: kurir_dir = "DOWN"
+
+#AlgoritmaBFS - Halta
+def bfs(start, goal, image):
+    queue = deque()
+    queue.append((start, [start]))
+    visited = set()
+    visited.add(start)
+    directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    while queue:
+        current, path = queue.popleft()
+        if current == goal:
+            return path
+        for dx, dy in directions:
+            nx, ny = current[0] + dx, current[1] + dy
+            if (nx, ny) not in visited and is_road(image, (nx, ny)):
+                queue.append(((nx, ny), path + [(nx, ny)]))
+                visited.add((nx, ny))
+    return None
+
+#AlgoritmaA* - Halta
+def heuristic(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+def astar(start, goal, image):
+    open_set = []
+    heapq.heappush(open_set, (0, start))
+    came_from = {}
+    g_score = {start: 0}
+    directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    while open_set:
+        _, current = heapq.heappop(open_set)
+        if current == goal:
+            path = [current]
+            while current in came_from:
+                current = came_from[current]
+                path.append(current)
+            path.reverse()
+            return path
+        for dx, dy in directions:
+            neighbor = (current[0] + dx, current[1] + dy)
+            if not is_road(image, neighbor):
+                continue
+            tentative_g = g_score[current] + 1
+            if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g
+                f_score = tentative_g + heuristic(neighbor, goal)
+                heapq.heappush(open_set, (f_score, neighbor))
+    return None
