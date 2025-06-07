@@ -154,3 +154,88 @@ def render():
         draw_kurir((200 + kurir_pos[0], kurir_pos[1]), kurir_dir)
     draw_info()
     pygame.display.flip()
+
+#inisialisasi deklarasi - Kevin
+def load_map():
+    global map_image, map_surface
+    Tk().withdraw()
+    file_path = filedialog.askopenfilename()
+    if file_path:
+        map_image = Image.open(file_path).convert('RGB')
+        map_image = map_image.resize((SCREEN_WIDTH - 200, SCREEN_HEIGHT))
+        map_surface = pygame.image.fromstring(map_image.tobytes(), map_image.size, map_image.mode)
+
+def random_kurir():
+    global kurir_pos
+    if map_image:
+        kurir_pos = random_road_position(map_image)
+
+def random_flag():
+    global source_pos, dest_pos
+    if map_image:
+        source_pos = random_road_position(map_image)
+        dest_pos = random_road_position(map_image)
+
+def mulai():
+    global kurir_pos, highlight_path, info_lines
+    if not (map_image and kurir_pos and source_pos and dest_pos):
+        info_lines = ["[WARNING] Lengkapi posisi kurir, source, dan tujuan!"]
+        return
+
+    info_lines = ["[INFO] Menghitung jalur..."]
+    render()
+    pygame.time.delay(1000)
+
+    t1 = time.time()
+    path1 = bfs(kurir_pos, source_pos, map_image)
+    t2 = time.time()
+    if not path1:
+        info_lines = ["[ERROR] Tidak ada jalur ke source!"]
+        return
+    bfs_time = t2 - t1
+    info_lines = [f"[BFS] {bfs_time:.4f}s | Len: {len(path1)}"]
+    highlight_path = path1.copy()
+    render()
+    pygame.time.delay(1500)
+
+    t3 = time.time()
+    path2 = astar(source_pos, dest_pos, map_image)
+    t4 = time.time()
+    if not path2:
+        info_lines.append("[ERROR] Tidak ada jalur ke destinasi!")
+        return
+    astar_time = t4 - t3
+    info_lines.append(f"[A*]  {astar_time:.4f}s | Len: {len(path2)}")
+    full_path = path1 + path2[1:]
+    highlight_path = full_path.copy()
+    render()
+    pygame.time.delay(1000)
+
+    for pos in full_path:
+        kurir_pos = pos
+        update_direction(full_path, pos)
+        render()
+        pygame.time.delay(5)
+    info_lines.append("[SELESAI]")
+
+#inisialisasi tombol - Kevin
+buttons = [
+    Button(10, 10, 150, 40, "Load Peta", load_map),
+    Button(10, 60, 150, 40, "Acak Kurir", random_kurir),
+    Button(10, 110, 150, 40, "Acak Tujuan", random_flag),
+    Button(10, 160, 150, 40, "Mulai", mulai)
+]
+
+#run - Kevin
+running = True
+clock = pygame.time.Clock()
+while running:
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            running = False
+        elif event.type == MOUSEBUTTONDOWN:
+            for btn in buttons:
+                btn.click(event.pos)
+    render()
+    clock.tick(60)
+pygame.quit()
